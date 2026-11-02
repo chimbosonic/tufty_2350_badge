@@ -1,4 +1,5 @@
 [submodule "third_party/pico-openpgp"]
 	path = third_party/pico-openpgp
-	url = https://github.com/polhenarejos/pico-openpgp
+	url = https://github.com/chimbosonic/pico-openpgp.git
 	ignore = dirty
+	branch = tufty

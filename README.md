@@ -26,7 +26,9 @@ git clone --recursive <this repo> && cd tufty_2350_badge
 PICO_SDK_PATH=~/pico-sdk ./build.sh
 ```
 
-`build.sh` applies `patches/` to the pinned submodules and builds `build/pico_openpgp.uf2`.
+pico-openpgp comes from the [`tufty` branch of chimbosonic/pico-openpgp](https://github.com/chimbosonic/pico-openpgp/tree/tufty),
+which adds a CMake hook and a fix for PINs staying blocked after `factory-reset`. `build.sh` applies
+`patches/pico-keys-sdk.patch` to the SDK submodule and builds `build/pico_openpgp.uf2`.
 
 ## Flash
 
@@ -69,7 +71,7 @@ tufty/                        display UI, compiled into pico_openpgp via tufty/t
   ui.c                        state machine and screens (core0, pico-keys-sdk platform_ui_task hook)
   st7789.c, gfx.c             parallel LCD driver (ported from pimoroni/tufty2350) and 4bpp drawing
   board_tufty.c               power latch, buttons, case LEDs, user-presence button = A
-patches/                      minimal changes to pico-openpgp / pico-keys-sdk
+patches/                      minimal changes to pico-keys-sdk (pico-openpgp changes live in the fork)
 tools/preview/run.sh          renders every screen to PNG on your computer (no hardware needed)
 tools/bdf2c.py                regenerates tufty/fonts/*.h from the Spleen BDF fonts
 ```

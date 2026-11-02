@@ -13,6 +13,7 @@ BUILD="${BUILD_DIR:-$ROOT/build}"
 
 : "${PICO_SDK_PATH:?Set PICO_SDK_PATH to your pico-sdk checkout}"
 
+git -C "$ROOT" submodule sync --recursive >/dev/null
 git -C "$ROOT" submodule update --init --recursive
 
 apply_patch() {
@@ -28,7 +29,6 @@ apply_patch() {
     fi
 }
 apply_patch "$OPENPGP/pico-keys-sdk" "$ROOT/patches/pico-keys-sdk.patch"
-apply_patch "$OPENPGP" "$ROOT/patches/pico-openpgp.patch"
 
 cmake -S "$OPENPGP" -B "$BUILD" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
