@@ -7,3 +7,4 @@
 #define EF_FP_DEC    0x00c8
 #define EF_FP_AUT    0x00c9
 #define EF_URI_URL   0x5f50
+#define EF_PRIV_DO_1 0x0101

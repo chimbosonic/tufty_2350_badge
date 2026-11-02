@@ -8,8 +8,16 @@
   PIN retry counters and recent activity. When a key has touch policy (UIF) enabled, the screen asks
   you to approve: **A** approves, **B** denies.
 
-The badge reads its identity from the card's own data objects (cardholder name `5B`, URL `5F50`,
-signing key fingerprint), so you configure it with standard `gpg --edit-card` commands.
+The badge reads its identity from the card's own data objects (cardholder name `5B`, URL `5F50`),
+so you configure it with standard `gpg --edit-card` commands.
+
+The card only stores fingerprints for the keys *on* it, usually subkeys, so the badge works out
+your **primary (identity) key fingerprint** in this order:
+
+1. Private data object 1, if it contains a fingerprint: `gpg-card` → `verify` → `privatedo 1 <FINGERPRINT>`
+   (needs the user PIN).
+2. A fingerprint inside the URL, e.g. `https://keyoxide.org/<FINGERPRINT>`.
+3. Otherwise, the signing key's own fingerprint. The badge then labels it "Sig. key" rather than "OpenPGP".
 
 > This **replaces** the stock Pimoroni MicroPython firmware. To go back, flash
 > `tufty-vX.Y.Z-micropython-with-filesystem.uf2` from

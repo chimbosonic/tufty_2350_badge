@@ -49,7 +49,16 @@ typedef struct {
     bool has_fp[3];
     uint8_t pw_retries[3];  // PW1, RC, PW3
     uint32_t sig_count;
+    char id_fpr[41];        // identity (primary key) fingerprint shown on the badge, hex
+    uint8_t id_src;         // ID_* below
 } snapshot_t;
+
+// Where the badge's identity fingerprint came from. The card only stores the
+// fingerprints of the keys *on* it (usually subkeys), not the primary key's, so
+// prefer an explicit one: private DO 0101 (gpg-card: privatedo 1), then a
+// fingerprint inside the URL DO (https://keyoxide.org/<FPR>), and only then
+// fall back to the signing key's own fingerprint.
+enum { ID_NONE, ID_PRIVDO, ID_URL, ID_SIGKEY };
 
 static snapshot_t snap;
 
@@ -90,6 +99,37 @@ static void format_name(const char *raw, char *out, size_t max) {
     out[j] = 0;
 }
 
+static bool is_hex(char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+// Finds a v4 fingerprint (a run of exactly 40 hex digits; spaces between groups
+// allowed) in `s` and writes it upper-cased to `out`.
+static bool find_fpr(const char *s, size_t len, char out[41]) {
+    size_t n = 0;
+    for (size_t i = 0; i <= len; i++) {
+        char c = i < len ? s[i] : 0;
+        if (c == ' ' && n > 0) {
+            continue;
+        }
+        if (c && is_hex(c)) {
+            if (n < 40) {
+                out[n] = (c >= 'a' && c <= 'f') ? (char)(c - 32) : c;
+            }
+            n++;
+            continue;
+        }
+        if (n == 40) {
+            out[40] = 0;
+            return true;
+        }
+        n = 0;
+    }
+    return false;
+}
+
+static void fp_hex(const uint8_t *fp, char *out /* >= 41 */);
+
 // Only call while core1 is not processing an APDU (see platform_ui_task()).
 static bool snapshot_refresh(void) {
     snapshot_t s;
@@ -121,6 +161,19 @@ static bool snapshot_refresh(void) {
     uint8_t cnt[3] = { 0 };
     if (read_do(EF_SIG_COUNT, cnt, sizeof(cnt)) == sizeof(cnt)) {
         s.sig_count = ((uint32_t)cnt[0] << 16) | ((uint32_t)cnt[1] << 8) | cnt[2];
+    }
+
+    char priv[128];
+    size_t priv_len = read_do(EF_PRIV_DO_1, (uint8_t *)priv, sizeof(priv));
+    if (find_fpr(priv, priv_len, s.id_fpr)) {
+        s.id_src = ID_PRIVDO;
+    }
+    else if (find_fpr(s.url, strlen(s.url), s.id_fpr)) {
+        s.id_src = ID_URL;
+    }
+    else if (s.has_fp[0]) {
+        fp_hex(s.fp[0], s.id_fpr);
+        s.id_src = ID_SIGKEY;
     }
 
     bool changed = memcmp(&s, &snap, sizeof(s)) != 0;
@@ -289,10 +342,8 @@ static const char *qr_payload(char *buf, size_t max) {
     if (snap.url[0] && !qr_use_fingerprint) {
         return snap.url;
     }
-    if (snap.has_fp[0]) {
-        char hex[41];
-        fp_hex(snap.fp[0], hex);
-        snprintf(buf, max, "openpgp4fpr:%s", hex);
+    if (snap.id_src != ID_NONE) {
+        snprintf(buf, max, "openpgp4fpr:%s", snap.id_fpr);
         return buf;
     }
     return snap.url[0] ? snap.url : NULL;
@@ -314,10 +365,7 @@ static void draw_badge(void) {
         draw_unconfigured();
         return;
     }
-    char hex[41] = { 0 };
-    if (snap.has_fp[0]) {
-        fp_hex(snap.fp[0], hex);
-    }
+    const char *hex = snap.id_fpr;
 
     badge_view_t view = badge_view;
     if (!payload && view != BADGE_NAME) {
@@ -372,7 +420,8 @@ static void draw_badge(void) {
     gfx_qr(payload, 4 + qr_size / 2, qr_top + qr_size / 2, qr_size);
 
     int col_x = qr_size + 16;
-    gfx_text(&font_12x24, col_x, qr_top + 2, 1, C_ACCENT, "OpenPGP");
+    // Only claim "OpenPGP" identity when we know the primary fingerprint.
+    gfx_text(&font_12x24, col_x, qr_top + 2, 1, C_ACCENT, snap.id_src == ID_SIGKEY ? "Sig. key" : "OpenPGP");
     if (hex[0]) {
         for (int g = 0; g < 5; g++) {
             char line[12];

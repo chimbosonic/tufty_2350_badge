@@ -76,6 +76,13 @@ void st7789_update(void) {
     fclose(f);
 }
 
+static void check(bool ok, const char *what) {
+    fprintf(stderr, "%s: %s\n", ok ? "PASS" : "FAIL", what);
+    if (!ok) {
+        exit(1);
+    }
+}
+
 static void shot(const char *dir, const char *name) {
     static char path[512];
     snprintf(path, sizeof(path), "%s/%s.bmp", dir, name);
@@ -94,8 +101,8 @@ int main(int argc, char **argv) {
 
     static const char name[] = "Lowe<<Alexis";
     static const char url[] = "https://keyoxide.org/0123456789ABCDEF0123456789ABCDEF01234567";
-    static const uint8_t fp_sig[20] = { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01, 0x23,
-                                        0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67 };
+    static const uint8_t fp_sig[20] = { 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B,
+                                        0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B, 0x5B };
     static const uint8_t fp_dec[20] = { 0xDE, 0xAD, 0xBE, 0xEF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                         0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
     static const uint8_t pw[7] = { 1, 127, 127, 127, 3, 0, 3 };
@@ -107,6 +114,7 @@ int main(int argc, char **argv) {
     put(EF_PW_PRIV, pw, 7);
     put(EF_SIG_COUNT, cnt, 3);
     snapshot_refresh();
+    check(snap.id_src == ID_URL && !strcmp(snap.id_fpr, "0123456789ABCDEF0123456789ABCDEF01234567"), "identity from URL");
 
     badge_view = BADGE_NAME_QR;
     shot(dir, "badge_name_qr");
@@ -141,6 +149,28 @@ int main(int argc, char **argv) {
     toast("Approved", C_GREEN);
     screen = SCREEN_CARD;
     shot(dir, "card_toast");
+    // Identity fingerprint sources: private DO 0101 beats URL beats signing key.
+    static const char priv[] = "fpr: aaaa bbbb cccc dddd eeee ffff 0000 1111 2222 3333\n";
+    put(EF_PRIV_DO_1, priv, sizeof(priv) - 1);
+    snapshot_refresh();
+    check(snap.id_src == ID_PRIVDO && !strcmp(snap.id_fpr, "AAAABBBBCCCCDDDDEEEEFFFF0000111122223333"), "identity from private DO");
+    nfiles = 0;
+    put(EF_CH_NAME, name, sizeof(name) - 1);
+    static const char url2[] = "https://example.org/me";
+    put(EF_URI_URL, url2, sizeof(url2) - 1);
+    put(EF_FP_SIG, fp_sig, 20);
+    snapshot_refresh();
+    check(snap.id_src == ID_SIGKEY && !strcmp(snap.id_fpr, "5B5B5B5B5B5B5B5B5B5B5B5B5B5B5B5B5B5B5B5B"), "fallback to signing key");
+    screen = SCREEN_BADGE;
+    badge_view = BADGE_NAME_QR;
+    shot(dir, "badge_sigkey_fallback");
+
+    // find_fpr edge cases: 64-hex (v5) and 39-hex runs are not v4 fingerprints.
+    char out[41];
+    check(!find_fpr("0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", 64, out), "reject 64 hex");
+    check(!find_fpr("0123456789ABCDEF0123456789ABCDEF0123456", 39, out), "reject 39 hex");
+    check(find_fpr("openpgp4fpr:0123456789abcdef0123456789abcdef01234567", 52, out) && !strcmp(out, "0123456789ABCDEF0123456789ABCDEF01234567"), "openpgp4fpr URI");
+
     info_until_ms = fake_ms + 1000;
     screen = SCREEN_BADGE;
     shot(dir, "info");
