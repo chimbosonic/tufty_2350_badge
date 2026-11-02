@@ -8,6 +8,10 @@
 # pcscd/libccid already supports, so it works on e.g. Tails without udev rules
 # or scdaemon.conf changes. The default is pico-openpgp's own ID (2E8A:10FF).
 #
+# EdDSA (Ed25519/Ed448) is always enabled: upstream leaves it off by default, but
+# without it gpg's usual ed25519 sign/auth keys can't be generated or moved to the
+# card (keytocard fails with "Invalid value"). It pulls pico-keys' mbedtls fork.
+#
 # Applies patches/*.patch to the pinned submodules (idempotent), then configures
 # and builds. Requires cmake, arm-none-eabi-gcc and pico-sdk >= 2.1.
 set -euo pipefail
@@ -48,7 +52,8 @@ cmake -S "$OPENPGP" -B "$BUILD" -G Ninja \
     -DPICO_BOARD=pimoroni_tufty2350 \
     -DPICO_BOARD_HEADER_DIRS="$ROOT/board" \
     -DPICO_OPENPGP_EXTRA_CMAKE="$ROOT/tufty/tufty.cmake" \
-    -DVIDPID="$VIDPID"
+    -DVIDPID="$VIDPID" \
+    -DENABLE_EDDSA=ON
 cmake --build "$BUILD"
 
 echo

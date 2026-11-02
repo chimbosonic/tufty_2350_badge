@@ -27,7 +27,9 @@ PICO_SDK_PATH=~/pico-sdk ./build.sh
 ```
 
 pico-openpgp comes from the [`tufty` branch of chimbosonic/pico-openpgp](https://github.com/chimbosonic/pico-openpgp/tree/tufty),
-which adds a CMake hook and a fix for PINs staying blocked after `factory-reset`. `build.sh` applies
+which adds a CMake hook and a fix for PINs staying blocked after `factory-reset`. The build enables
+EdDSA (Ed25519/Ed448), which upstream leaves off by default, so gpg's usual ed25519/cv25519 keys can be
+generated on the card or moved to it. `build.sh` applies
 `patches/pico-keys-sdk.patch` to the SDK submodule and builds `build/pico_openpgp.uf2`.
 
 ### Linux / Tails: Gnuk USB ID
