@@ -87,6 +87,17 @@ If macOS doesn't see the card, add `disable-ccid` (to use the PC/SC framework) o
 
 The first press after the screen dims only wakes it. Badge views: name + QR, QR only, big name + fingerprint.
 
+## Power
+
+- **Power off:** hold **RESET**. The four case LEDs light one by one; keep holding until all four
+  are lit (about 1.5 s), then let go. Releasing earlier just restarts the badge.
+- **Power on:** press any front button (A, B, C, UP, DOWN), or RESET.
+- **Shipping mode** (for storage/transport): hold **UP + DOWN** as well while long-pressing RESET.
+  Front buttons then won't wake it; only RESET does.
+
+This matches the stock Tufty firmware. The badge doesn't turn itself off: on battery it stays on
+(the screen dims after 10 minutes) until you power it off.
+
 ## Layout
 
 ```

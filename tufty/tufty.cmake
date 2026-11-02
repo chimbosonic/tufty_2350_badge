@@ -26,6 +26,7 @@ target_link_libraries(pico_openpgp PRIVATE
     hardware_dma
     hardware_pio
     hardware_pwm
+    hardware_powman
 )
 
 # Build ID shown on the badge (boot screen, and the info overlay on button A) and
