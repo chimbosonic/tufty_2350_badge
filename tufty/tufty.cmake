@@ -39,7 +39,13 @@ if(NOT TUFTY_GIT)
 endif()
 string(TIMESTAMP TUFTY_BUILD_TIME "%Y%m%d-%H%M%S")
 set(TUFTY_BUILD_ID "${TUFTY_GIT}-${TUFTY_BUILD_TIME}")
+# Non-default USB identity (pico-keys-sdk VIDPID preset, e.g. Gnuk) is part of the ID.
+if(VIDPID AND NOT VIDPID STREQUAL "None")
+    string(TOLOWER "${VIDPID}" _tufty_vidpid)
+    string(APPEND TUFTY_BUILD_ID "-${_tufty_vidpid}")
+endif()
 set_source_files_properties(${TUFTY_DIR}/ui.c PROPERTIES
     COMPILE_DEFINITIONS "TUFTY_BUILD_ID=\"${TUFTY_BUILD_ID}\"")
 file(WRITE ${CMAKE_BINARY_DIR}/tufty_build_id.txt "${TUFTY_BUILD_ID}\n")
+file(WRITE ${CMAKE_BINARY_DIR}/tufty_usb_id.txt "${USB_VID}:${USB_PID}\n")
 message(STATUS "Tufty build ID: ${TUFTY_BUILD_ID}")

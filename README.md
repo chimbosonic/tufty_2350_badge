@@ -30,6 +30,20 @@ pico-openpgp comes from the [`tufty` branch of chimbosonic/pico-openpgp](https:/
 which adds a CMake hook and a fix for PINs staying blocked after `factory-reset`. `build.sh` applies
 `patches/pico-keys-sdk.patch` to the SDK submodule and builds `build/pico_openpgp.uf2`.
 
+### Linux / Tails: Gnuk USB ID
+
+By default the badge uses pico-openpgp's USB ID `2E8A:10FF`. Most Linux `pcscd` installs don't
+recognise it, so there gpg needs a udev rule to reach the card. On Tails that rule is lost at every
+reboot. Build the Gnuk variant instead:
+
+```sh
+USB_ID=gnuk PICO_SDK_PATH=~/pico-sdk ./build.sh   # -> build-gnuk/pico_openpgp.uf2
+```
+
+This variant enumerates as a Gnuk token (`234B:0000`), which stock libccid supports, so it works
+without any setup. It still works on macOS. Its build ID ends in `-gnuk`, so pressing **A** on the
+badge shows which variant it's running. Reflashing keeps the card's keys.
+
 ## Flash
 
 Hold **HOME** (the BOOT button) and press **RESET**. An `RP2350` drive appears; copy
