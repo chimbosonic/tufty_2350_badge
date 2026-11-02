@@ -1,0 +1,5 @@
+#pragma once
+#define PIPGP_VERSION_MAJOR 5
+#define PIPGP_VERSION_MINOR 2
+#define OPGP_VERSION_MAJOR 3
+#define OPGP_VERSION_MINOR 4

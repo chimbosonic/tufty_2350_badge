@@ -1,0 +1,70 @@
+diff --git i/picokeys_sdk_import.cmake w/picokeys_sdk_import.cmake
+index 365212e..e6e70cf 100644
+--- i/picokeys_sdk_import.cmake
++++ w/picokeys_sdk_import.cmake
+@@ -558,8 +558,15 @@ endif()
+ 
+ set(IS_CYW43 0)
+ if(PICO_PLATFORM)
+-    file(READ ${PICO_SDK_PATH}/src/boards/include/boards/${PICO_BOARD}.h content)
+-    string(REGEX MATCHALL "CYW43_WL_GPIO_LED_PIN" _ ${content})
++    set(content "")
++    set(_picok_board_header ${PICO_SDK_PATH}/src/boards/include/boards/${PICO_BOARD}.h)
++    foreach(_dir IN LISTS PICO_BOARD_HEADER_DIRS)
++        if(EXISTS ${_dir}/${PICO_BOARD}.h)
++            set(_picok_board_header ${_dir}/${PICO_BOARD}.h)
++        endif()
++    endforeach()
++    file(READ ${_picok_board_header} content)
++    string(REGEX MATCHALL "CYW43_WL_GPIO_LED_PIN" _ "${content}")
+     if(CMAKE_MATCH_0)
+         message(STATUS "Found cyw43 LED:\t\t true")
+         list(APPEND LIBRARIES pico_cyw43_arch_none)
+diff --git i/src/button.c w/src/button.c
+index 96cf21a..5e70816 100644
+--- i/src/button.c
++++ w/src/button.c
+@@ -92,9 +92,13 @@ static bool __no_inline_not_in_flash_func(picok_get_bootsel_button)(void) {
+ 
+     return button_state;
+ }
+-static bool picok_board_button_read(void) {
++// Boards with a real user-presence button can override this.
++WEAK bool picok_board_button_read_hook(void) {
+   return picok_get_bootsel_button();
+ }
++static bool picok_board_button_read(void) {
++  return picok_board_button_read_hook();
++}
+ #else
+ static bool picok_board_button_read(void) {
+     return true; // always unpressed
+diff --git i/src/button.h w/src/button.h
+index f7ca1c9..9416135 100644
+--- i/src/button.h
++++ w/src/button.h
+@@ -44,6 +44,9 @@ extern void button_wait_start_timeout(uint32_t timeout_seconds);
+ 
+ extern int (*button_pressed_cb)(uint8_t);
+ 
++// Weak; returns true while the user-presence button is held (default: BOOTSEL).
++extern bool picok_board_button_read_hook(void);
++
+ extern bool is_req_button_pending(void);
+ 
+ #endif // BUTTON_H
+diff --git i/src/main.c w/src/main.c
+index 7a910ac..29c64a6 100644
+--- i/src/main.c
++++ w/src/main.c
+@@ -105,6 +105,10 @@ WEAK int picokey_init(void) {
+     return 0;
+ }
+ 
++#ifdef ENABLE_LVGL_UI
++extern void platform_ui_task(void);
++#endif
++
+ void execute_tasks(void);
+ void execute_tasks(void) {
+ #if !defined(ENABLE_EMULATION) && !defined(ESP_PLATFORM)

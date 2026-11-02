@@ -1,0 +1,4 @@
+[submodule "third_party/pico-openpgp"]
+	path = third_party/pico-openpgp
+	url = https://github.com/polhenarejos/pico-openpgp
+	ignore = dirty
